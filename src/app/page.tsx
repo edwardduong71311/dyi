@@ -6,7 +6,7 @@ import ThreeContextProvider from "./context/ThreeContext";
 export default function Home() {
   return (
     <>
-      <ThreeContextProvider rootId="threejs">
+      <ThreeContextProvider>
         <MainApp />
       </ThreeContextProvider>
     </>
