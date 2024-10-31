@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import WebGL from "three/examples/jsm/capabilities/WebGL.js";
+import WebGL from "three/addons/capabilities/WebGL.js";
+import { DragControls } from "three/addons/controls/DragControls.js";
 import { TickFunction } from "./main.type";
 
 let mouse: THREE.Vector2,
@@ -10,6 +11,7 @@ let mouse: THREE.Vector2,
   camera: THREE.PerspectiveCamera,
   controls: OrbitControls,
   grid: THREE.GridHelper,
+  dragControls: DragControls,
   movableObjects: THREE.Object3D[] = [];
 let subscribers: TickFunction[] = [];
 
@@ -83,6 +85,20 @@ export const initialize = (rootId: string) => {
 
   grid = new THREE.GridHelper(200, 200, 0xbdc3c7, 0xbdc3c7);
   scene.add(grid);
+
+  dragControls = new DragControls(movableObjects, camera, renderer.domElement);
+  dragControls.rotateSpeed = 0;
+
+  dragControls.addEventListener("dragstart", function () {
+    controls.enabled = false;
+  });
+  dragControls.addEventListener("drag", function () {
+    // event.object.position.y = 0;
+  });
+  dragControls.addEventListener("dragend", function (event) {
+    controls.enabled = true;
+    event.object.position.y = 0;
+  });
 
   controls = new OrbitControls(camera, renderer.domElement);
   controls.maxDistance = 50;
