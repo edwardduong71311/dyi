@@ -1,44 +1,27 @@
 import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
 import WebGL from "three/addons/capabilities/WebGL.js";
-import { DragControls } from "three/addons/controls/DragControls.js";
-import { TickFunction } from "./main.type";
+import { getScene, getMoveableObjects, notifySubscribers } from "./scene";
+import { initDragControl } from "./drag.controller";
+import { getOrbitController, initOrbitController } from "./orbit.controller";
+import { getCamera, initCamera } from "./camera.controller";
 
 let mouse: THREE.Vector2,
-  raycaster: THREE.Raycaster,
   renderer: THREE.WebGLRenderer,
-  scene: THREE.Scene,
-  camera: THREE.PerspectiveCamera,
-  controls: OrbitControls,
-  grid: THREE.GridHelper,
-  dragControls: DragControls,
-  movableObjects: THREE.Object3D[] = [];
-let subscribers: TickFunction[] = [];
+  raycaster: THREE.Raycaster;
 
-const tick = () => {
-  for (const func of subscribers) {
-    func();
-  }
-};
-
-const animate = () => {
-  tick();
-  controls.update();
-
-  raycaster.setFromCamera(mouse, camera);
-  // Check for intersections
-  const intersections = raycaster.intersectObjects(movableObjects);
+const onHover3DObject = () => {
+  raycaster.setFromCamera(mouse, getCamera());
+  const intersections = raycaster.intersectObjects(getMoveableObjects());
   if (intersections.length > 0) {
     document.body.style.cursor = "pointer";
-    controls.enableRotate = false;
-    controls.enablePan = false;
+    getOrbitController().enableRotate = false;
+    getOrbitController().enablePan = false;
   } else {
     document.body.style.cursor = "grab";
-    controls.enableRotate = true;
-    controls.enablePan = true;
+    getOrbitController().enableRotate = true;
+    getOrbitController().enablePan = true;
   }
-
-  renderer.render(scene, camera);
 };
 
 const onMouseMove = (event: MouseEvent) => {
@@ -47,22 +30,11 @@ const onMouseMove = (event: MouseEvent) => {
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 };
 
-export const add3DObject = (object: THREE.Object3D, func?: TickFunction) => {
-  if (scene) {
-    scene.add(object);
-    movableObjects.push(object);
-
-    if (func) subscribers.push(func);
-  }
-};
-
-export const remove3DObject = (object: THREE.Object3D, func?: TickFunction) => {
-  if (scene) {
-    scene.remove(object);
-    movableObjects = movableObjects.filter((o) => o === object);
-
-    if (func) subscribers = subscribers.filter((f) => f === func);
-  }
+const animate = () => {
+  notifySubscribers();
+  getOrbitController().update();
+  onHover3DObject();
+  renderer.render(getScene(), getCamera());
 };
 
 export const initialize = (rootId: string) => {
@@ -74,41 +46,20 @@ export const initialize = (rootId: string) => {
   mouse = new THREE.Vector2();
   raycaster = new THREE.Raycaster();
   renderer = new THREE.WebGLRenderer({ alpha: true });
-  scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(
-    40,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
+
+  initCamera();
+  initOrbitController(getCamera(), renderer);
+  initDragControl(
+    getCamera(),
+    renderer,
+    raycaster,
+    getOrbitController(),
+    mouse
   );
-  camera.position.set(5, 5, 5);
-
-  grid = new THREE.GridHelper(200, 200, 0xbdc3c7, 0xbdc3c7);
-  scene.add(grid);
-
-  dragControls = new DragControls(movableObjects, camera, renderer.domElement);
-  dragControls.rotateSpeed = 0;
-
-  dragControls.addEventListener("dragstart", function () {
-    controls.enabled = false;
-  });
-  dragControls.addEventListener("drag", function () {
-    // event.object.position.y = 0;
-  });
-  dragControls.addEventListener("dragend", function (event) {
-    controls.enabled = true;
-    event.object.position.y = 0;
-  });
-
-  controls = new OrbitControls(camera, renderer.domElement);
-  controls.maxDistance = 50;
-  controls.minDistance = 5;
-  controls.maxPolarAngle = Math.PI / 2.2;
 
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setAnimationLoop(animate);
   document.getElementById(rootId)?.appendChild(renderer.domElement);
-
   document.addEventListener("mousemove", onMouseMove);
 };
 

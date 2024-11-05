@@ -10,13 +10,9 @@ import {
   useMemo,
   useState,
 } from "react";
-import {
-  add3DObject,
-  remove3DObject,
-  initialize,
-  dispose,
-} from "@/threejs/main";
-import { TickFunction } from "@/threejs/main.type";
+import { initialize, dispose } from "@/threejs/main";
+import { TickFunction } from "@/threejs/scene.type";
+import { add3DObject, remove3DObject } from "@/threejs/scene";
 
 type ThreeContextType = {
   ready: boolean;
